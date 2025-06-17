@@ -41,16 +41,16 @@
 <button onclick="downloadCSV()">Download All as CSV</button>
 
 <script>
-// Existing SKU mappings
+// Existing SKU mappings without region and download info
 const skuMap = [
-  { awsRegion: "us-east-1", aws: "t3.nano", azureRegion: "East US", azure: "Standard_B1ls", download: "https://example.com/download/t3.nano" },
-  { awsRegion: "us-east-1", aws: "t3.micro", azureRegion: "East US", azure: "Standard_B1s", download: "https://example.com/download/t3.micro" },
-  { awsRegion: "us-east-1", aws: "t3.small", azureRegion: "East US", azure: "Standard_B1ms", download: "https://example.com/download/t3.small" },
-  { awsRegion: "us-east-1", aws: "t3.medium", azureRegion: "East US", azure: "Standard_B2s", download: "https://example.com/download/t3.medium" },
-  { awsRegion: "us-east-1", aws: "t3.large", azureRegion: "East US", azure: "Standard_B2ms", download: "https://example.com/download/t3.large" },
-  { awsRegion: "us-east-1", aws: "t3.xlarge", azureRegion: "East US", azure: "Standard_B4ms", download: "https://example.com/download/t3.xlarge" },
-  { awsRegion: "us-east-1", aws: "t3.2xlarge", azureRegion: "East US", azure: "Standard_B8ms", download: "https://example.com/download/t3.2xlarge" },
-  { awsRegion: "us-east-1", aws: "t3.4xlarge", azureRegion: "East US", azure: "Standard_B16ms", download: "https://example.com/download/t3.4xlarge" }
+  { aws: "t3.nano", azure: "Standard_B1ls" },
+  { aws: "t3.micro", azure: "Standard_B1s" },
+  { aws: "t3.small", azure: "Standard_B1ms" },
+  { aws: "t3.medium", azure: "Standard_B2s" },
+  { aws: "t3.large", azure: "Standard_B2ms" },
+  { aws: "t3.xlarge", azure: "Standard_B4ms" },
+  { aws: "t3.2xlarge", azure: "Standard_B8ms" },
+  { aws: "t3.4xlarge", azure: "Standard_B16ms" }
 ];
 
 const tbody = document.querySelector('#skuTable tbody');
