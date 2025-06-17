@@ -1,75 +1,201 @@
-Here’s the updated full code that does exactly what you asked:
-
-✅ When you type `t` (or `T`), it shows **all matching AWS SKUs starting with `t`** (like `t3.nano`, `t3.micro`, etc.)
-✅ Results show in **uppercase** (both AWS and Azure SKUs)
-
----
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>AWS to Azure SKU Mapper</title>
-  <style>
-    body { font-family: Arial; padding: 20px; background: #f0f0f0; }
-    input, button { padding: 8px; margin: 5px; }
-    #result { margin-top: 20px; font-weight: bold; }
-    table { border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 8px 12px; border: 1px solid #ccc; }
-    th { background: #ddd; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AWS-Azure SKU Mapping with Dynamic Rows</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  h2 { margin-top: 30px; }
+  input, select { padding: 8px; width: 200px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  th { background-color: #f4f4f4; }
+  #suggestions div { cursor: pointer; padding: 4px; }
+  #suggestions div:hover { background-color: #eee; }
+  .add-row-btn { margin-top: 10px; padding: 8px 12px; cursor: pointer; background-color: #007bff; color: #fff; border: none; }
+  .add-row-btn:hover { background-color: #0056b3; }
+</style>
 </head>
 <body>
-  <h2>AWS to Azure SKU Mapper</h2>
-  <label for="awsInput">Enter AWS Family (e.g., t3):</label>
-  <input type="text" id="awsInput" placeholder="e.g., t3 or T3">
-  <button onclick="mapSkus()">Map SKUs</button>
 
-  <div id="result"></div>
+<h2>Search AWS SKUs</h2>
+<input type="text" id="awsSearchInput" placeholder="Type AWS SKU..." oninput="updateSearchSuggestions()" autocomplete="off"/>
+<div id="searchSuggestions"></div>
 
-  <script>
-    const skuMap = [
-      { aws: "t3.nano", azure: "Standard_B1ls" },
-      { aws: "t3.micro", azure: "Standard_B1s" },
-      { aws: "t3.small", azure: "Standard_B1ms" },
-      { aws: "t3.medium", azure: "Standard_B2s" },
-      { aws: "t3.large", azure: "Standard_B2ms" },
-      { aws: "t3.xlarge", azure: "Standard_B4ms" },
-      { aws: "t3.2xlarge", azure: "Standard_B8ms" },
-      { aws: "m5.large", azure: "Standard_D2s_v3" },
-      { aws: "m5.xlarge", azure: "Standard_D4s_v3" },
-      { aws: "c5.large", azure: "Standard_F2s_v2" },
-      { aws: "c5.xlarge", azure: "Standard_F4s_v2" },
-      { aws: "r5.large", azure: "Standard_E2s_v3" },
-      { aws: "r5.2xlarge", azure: "Standard_E8s_v3" }
-    ];
+<h2>Order SKUs</h2>
+<button class="add-row-btn" onclick="addSkuRow()">+ Add SKU</button>
+<form id="skuForm">
+  <table id="skuTable">
+    <thead>
+      <tr>
+        <th>AWS SKU</th>
+        <th>Azure SKU</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</form>
 
-    function mapSkus() {
-      const input = document.getElementById("awsInput").value.trim().toLowerCase();
-      const resultDiv = document.getElementById("result");
+<button onclick="downloadCSV()">Download All as CSV</button>
 
-      if (!input) {
-        resultDiv.innerHTML = "⚠️ Please enter an AWS SKU family.";
-        return;
-      }
+<script>
+// Existing SKU mappings
+const skuMap = [
+  { awsRegion: "us-east-1", aws: "t3.nano", azureRegion: "East US", azure: "Standard_B1ls", download: "https://example.com/download/t3.nano" },
+  { awsRegion: "us-east-1", aws: "t3.micro", azureRegion: "East US", azure: "Standard_B1s", download: "https://example.com/download/t3.micro" },
+  { awsRegion: "us-east-1", aws: "t3.small", azureRegion: "East US", azure: "Standard_B1ms", download: "https://example.com/download/t3.small" },
+  { awsRegion: "us-east-1", aws: "t3.medium", azureRegion: "East US", azure: "Standard_B2s", download: "https://example.com/download/t3.medium" },
+  { awsRegion: "us-east-1", aws: "t3.large", azureRegion: "East US", azure: "Standard_B2ms", download: "https://example.com/download/t3.large" },
+  { awsRegion: "us-east-1", aws: "t3.xlarge", azureRegion: "East US", azure: "Standard_B4ms", download: "https://example.com/download/t3.xlarge" },
+  { awsRegion: "us-east-1", aws: "t3.2xlarge", azureRegion: "East US", azure: "Standard_B8ms", download: "https://example.com/download/t3.2xlarge" },
+  { awsRegion: "us-east-1", aws: "t3.4xlarge", azureRegion: "East US", azure: "Standard_B16ms", download: "https://example.com/download/t3.4xlarge" }
+];
 
-      const matches = skuMap.filter(item => item.aws.toLowerCase().startsWith(input));
+const tbody = document.querySelector('#skuTable tbody');
 
-      if (matches.length > 0) {
-        let table = `<table><tr><th>AWS SKU</th><th>Azure SKU</th></tr>`;
-        matches.forEach(m => {
-          table += `<tr><td>${m.aws.toUpperCase()}</td><td>${m.azure.toUpperCase()}</td></tr>`;
-        });
-        table += `</table>`;
-        resultDiv.innerHTML = table;
-      } else {
-        resultDiv.innerHTML = "❌ No matching SKUs found.";
-      }
+// Function to add a new row
+function addSkuRow() {
+  const row = document.createElement('tr');
+
+  // AWS SKU cell
+  const awsCell = document.createElement('td');
+  const awsSelect = document.createElement('select');
+  awsSelect.innerHTML = `<option value="">Select AWS SKU</option>`;
+  skuMap.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.aws;
+    option.textContent = item.aws;
+    awsSelect.appendChild(option);
+  });
+  awsSelect.onchange = () => {
+    const selectedAws = awsSelect.value;
+    const match = skuMap.find(s => s.aws === selectedAws);
+    if (match) {
+      azureInput.value = match.azure;
+    } else {
+      azureInput.value = '';
     }
-  </script>
+  };
+  awsCell.appendChild(awsSelect);
+  row.appendChild(awsCell);
+
+  // Azure SKU cell
+  const azureCell = document.createElement('td');
+  const azureInput = document.createElement('input');
+  azureInput.type = 'text';
+  azureInput.readOnly = true;
+  azureCell.appendChild(azureInput);
+  row.appendChild(azureCell);
+
+  // Actions cell
+  const actionCell = document.createElement('td');
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.textContent = 'Remove';
+  deleteBtn.onclick = () => row.remove();
+  actionCell.appendChild(deleteBtn);
+  row.appendChild(actionCell);
+
+  tbody.appendChild(row);
+}
+
+// Search suggestion logic
+const searchInput = document.getElementById('awsSearchInput');
+const searchSuggestionsDiv = document.getElementById('searchSuggestions');
+
+function updateSearchSuggestions() {
+  const val = searchInput.value.trim().toLowerCase();
+  searchSuggestionsDiv.innerHTML = '';
+
+  if (!val) {
+    return;
+  }
+
+  const matches = skuMap.filter(item => item.aws.toLowerCase().includes(val));
+  matches.forEach(item => {
+    const div = document.createElement('div');
+    div.textContent = item.aws;
+    div.onclick = () => {
+      searchInput.value = item.aws;
+      showMatchingOption(item);
+      searchSuggestionsDiv.innerHTML = '';
+    };
+    searchSuggestionsDiv.appendChild(div);
+  });
+}
+
+function showMatchingOption(item) {
+  // Add a new row with selected SKU
+  const row = document.createElement('tr');
+
+  // AWS Select
+  const awsCell = document.createElement('td');
+  const awsSelect = document.createElement('select');
+  skuMap.forEach(s => {
+    const option = document.createElement('option');
+    option.value = s.aws;
+    option.textContent = s.aws;
+    if (s.aws === item.aws) option.selected = true;
+    awsSelect.appendChild(option);
+  });
+  awsSelect.onchange = () => {
+    const selectedAws = awsSelect.value;
+    const match = skuMap.find(s => s.aws === selectedAws);
+    if (match) {
+      azureInput.value = match.azure;
+    } else {
+      azureInput.value = '';
+    }
+  };
+  awsCell.appendChild(awsSelect);
+  row.appendChild(awsCell);
+
+  // Azure SKU
+  const azureCell = document.createElement('td');
+  const azureInput = document.createElement('input');
+  azureInput.type = 'text';
+  azureInput.readOnly = true;
+  azureInput.value = item.azure;
+  azureCell.appendChild(azureInput);
+  row.appendChild(azureCell);
+
+  // Remove button
+  const actionCell = document.createElement('td');
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.textContent = 'Remove';
+  removeBtn.onclick = () => row.remove();
+  actionCell.appendChild(removeBtn);
+  row.appendChild(actionCell);
+
+  tbody.appendChild(row);
+}
+
+// Download all data as CSV
+function downloadCSV() {
+  const headers = ['AWS SKU', 'Azure SKU'];
+  const rows = Array.from(tbody.children).map(row => {
+    const aws = row.children[0].children[0].value;
+    const azure = row.children[1].children[0].value;
+    return [aws, azure];
+  });
+
+  const csvContent = [headers, ...rows]
+    .map(e => e.join(','))
+    .join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'skus.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+</script>
+
 </body>
 </html>
-```
-
-Let me know if you'd like to add [filter by Azure series](f) or [copy results to clipboard](f).
