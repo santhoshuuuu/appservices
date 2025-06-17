@@ -29,21 +29,24 @@
       { aws: "t3.large", azure: "Standard_B2ms" },
       { aws: "t3.xlarge", azure: "Standard_B4ms" },
       { aws: "t3.2xlarge", azure: "Standard_B8ms" },
-
       { aws: "m5.large", azure: "Standard_D2s_v3" },
       { aws: "m5.xlarge", azure: "Standard_D4s_v3" },
-
       { aws: "c5.large", azure: "Standard_F2s_v2" },
       { aws: "c5.xlarge", azure: "Standard_F4s_v2" },
-
       { aws: "r5.large", azure: "Standard_E2s_v3" },
       { aws: "r5.2xlarge", azure: "Standard_E8s_v3" }
     ];
 
     function mapSkus() {
       const input = document.getElementById("awsInput").value.trim().toLowerCase();
-      const matches = skuMap.filter(item => item.aws.startsWith(input));
       const resultDiv = document.getElementById("result");
+
+      if (!input) {
+        resultDiv.innerHTML = "⚠️ Please enter an AWS SKU family.";
+        return;
+      }
+
+      const matches = skuMap.filter(item => item.aws.toLowerCase().startsWith(input));
 
       if (matches.length > 0) {
         let table = `<table><tr><th>AWS SKU</th><th>Azure SKU</th></tr>`;
