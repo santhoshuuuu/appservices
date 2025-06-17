@@ -1,10 +1,18 @@
+Here’s the updated full code that does exactly what you asked:
+
+✅ When you type `t` (or `T`), it shows **all matching AWS SKUs starting with `t`** (like `t3.nano`, `t3.micro`, etc.)
+✅ Results show in **uppercase** (both AWS and Azure SKUs)
+
+---
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>AWS to Azure SKU Mapper</title>
   <style>
-    body { font-family: Arial; padding: 20px; background: #f9f9f9; }
+    body { font-family: Arial; padding: 20px; background: #f0f0f0; }
     input, button { padding: 8px; margin: 5px; }
     #result { margin-top: 20px; font-weight: bold; }
     table { border-collapse: collapse; margin-top: 10px; }
@@ -15,7 +23,7 @@
 <body>
   <h2>AWS to Azure SKU Mapper</h2>
   <label for="awsInput">Enter AWS Family (e.g., t3):</label>
-  <input type="text" id="awsInput" placeholder="e.g., t3">
+  <input type="text" id="awsInput" placeholder="e.g., t3 or T3">
   <button onclick="mapSkus()">Map SKUs</button>
 
   <div id="result"></div>
@@ -51,7 +59,7 @@
       if (matches.length > 0) {
         let table = `<table><tr><th>AWS SKU</th><th>Azure SKU</th></tr>`;
         matches.forEach(m => {
-          table += `<tr><td>${m.aws}</td><td>${m.azure}</td></tr>`;
+          table += `<tr><td>${m.aws.toUpperCase()}</td><td>${m.azure.toUpperCase()}</td></tr>`;
         });
         table += `</table>`;
         resultDiv.innerHTML = table;
@@ -62,3 +70,6 @@
   </script>
 </body>
 </html>
+```
+
+Let me know if you'd like to add [filter by Azure series](f) or [copy results to clipboard](f).
