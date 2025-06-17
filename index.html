@@ -1,42 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>AWS to Azure SKU Mapper</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
+    body { font-family: Arial; padding: 20px; background: #f9f9f9; }
     input, button { padding: 8px; margin: 5px; }
     #result { margin-top: 20px; font-weight: bold; }
+    table { border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px 12px; border: 1px solid #ccc; }
+    th { background: #ddd; }
   </style>
 </head>
 <body>
   <h2>AWS to Azure SKU Mapper</h2>
-  <label for="awsSku">Enter AWS SKU:</label>
-  <input type="text" id="awsSku" placeholder="e.g., t3.medium">
-  <button onclick="mapSku()">Find Azure Equivalent</button>
+  <label for="awsInput">Enter AWS Family (e.g., t3):</label>
+  <input type="text" id="awsInput" placeholder="e.g., t3">
+  <button onclick="mapSkus()">Map SKUs</button>
 
   <div id="result"></div>
 
   <script>
-    const skuMap = {
-      "t3.medium": "Standard_B2s",
-      "m5.large": "Standard_D2s_v3",
-      "c5.xlarge": "Standard_F4s_v2",
-      "r5.2xlarge": "Standard_E8s_v3"
-    };
+    const skuMap = [
+      { aws: "t3.nano", azure: "Standard_B1ls" },
+      { aws: "t3.micro", azure: "Standard_B1s" },
+      { aws: "t3.small", azure: "Standard_B1ms" },
+      { aws: "t3.medium", azure: "Standard_B2s" },
+      { aws: "t3.large", azure: "Standard_B2ms" },
+      { aws: "t3.xlarge", azure: "Standard_B4ms" },
+      { aws: "t3.2xlarge", azure: "Standard_B8ms" },
 
-    function mapSku() {
-      const awsSku = document.getElementById("awsSku").value.trim();
-      const azureSku = skuMap[awsSku];
+      { aws: "m5.large", azure: "Standard_D2s_v3" },
+      { aws: "m5.xlarge", azure: "Standard_D4s_v3" },
 
+      { aws: "c5.large", azure: "Standard_F2s_v2" },
+      { aws: "c5.xlarge", azure: "Standard_F4s_v2" },
+
+      { aws: "r5.large", azure: "Standard_E2s_v3" },
+      { aws: "r5.2xlarge", azure: "Standard_E8s_v3" }
+    ];
+
+    function mapSkus() {
+      const input = document.getElementById("awsInput").value.trim().toLowerCase();
+      const matches = skuMap.filter(item => item.aws.startsWith(input));
       const resultDiv = document.getElementById("result");
-      if (azureSku) {
-        resultDiv.innerHTML = `✅ Azure equivalent: <strong>${azureSku}</strong>`;
+
+      if (matches.length > 0) {
+        let table = `<table><tr><th>AWS SKU</th><th>Azure SKU</th></tr>`;
+        matches.forEach(m => {
+          table += `<tr><td>${m.aws}</td><td>${m.azure}</td></tr>`;
+        });
+        table += `</table>`;
+        resultDiv.innerHTML = table;
       } else {
-        resultDiv.innerHTML = "❌ No match found. Please check the SKU or update the mapping.";
+        resultDiv.innerHTML = "❌ No matching SKUs found.";
       }
     }
   </script>
 </body>
 </html>
-
