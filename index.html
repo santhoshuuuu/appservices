@@ -3,29 +3,29 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AWS-Azure SKU Mapping with Colored Headers</title>
+<title>AWS-Azure SKU Mapping with Dynamic Rows and Colors</title>
 <style>
   body { font-family: Arial, sans-serif; margin: 20px; }
   h2 { margin-top: 30px; }
   input, select { padding: 8px; width: 200px; }
   table { border-collapse: collapse; width: 100%; margin-top: 20px; }
   th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-  /* Style for header cells */
-  th.aws-header { background-color: #ffcc00; } /* Bright yellow for AWS header */
-  th.azure-header { background-color: #e0e0e0; } /* Light grey for Azure header */
-  th.actions-header { background-color: #f8d7da; } /* Light red for Actions header */
-
+  th { background-color: #f4f4f4; }
   #suggestions div { cursor: pointer; padding: 4px; }
   #suggestions div:hover { background-color: #eee; }
   .add-row-btn { margin-top: 10px; padding: 8px 12px; cursor: pointer; background-color: #007bff; color: #fff; border: none; }
   .add-row-btn:hover { background-color: #0056b3; }
+
+  /* Color styles for SKU cells */
+  .aws-cell { background-color: #cce5ff; } /* Light blue for AWS SKU */
+  .azure-cell { background-color: #d4edda; } /* Light green for Azure SKU */
 </style>
 </head>
 <body>
 
 <h2>Search AWS SKUs</h2>
 <input type="text" id="awsSearchInput" placeholder="Type AWS SKU..." oninput="updateSearchSuggestions()" autocomplete="off"/>
-<div id="searchSuggestions" style="border:1px solid #ccc; max-width:200px; max-height:150px; overflow:auto; position:absolute; background:white; z-index:1000;"></div>
+<div id="searchSuggestions"></div>
 
 <h2>Order SKUs</h2>
 <button class="add-row-btn" onclick="addSkuRow()">+ Add SKU</button>
@@ -33,9 +33,9 @@
   <table id="skuTable">
     <thead>
       <tr>
-        <th class="aws-header">AWS SKU</th>
-        <th class="azure-header">Azure SKU</th>
-        <th class="actions-header">Actions</th>
+        <th>AWS SKU</th>
+        <th>Azure SKU</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -45,29 +45,173 @@
 <button onclick="downloadCSV()">Download All as CSV</button>
 
 <script>
-// Sample SKU data
+// Existing SKU mappings without region and download info
 const skuMap = [
-  { aws: 'AWS1', azure: 'Azure1' },
-  { aws: 'AWS2', azure: 'Azure2' },
-  { aws: 'AWS3', azure: 'Azure3' },
-  { aws: 'AWS4', azure: 'Azure4' },
-  { aws: 'AWS5', azure: 'Azure5' },
-  { aws: 'AWS6', azure: 'Azure6' },
-  { aws: 'AWS7', azure: 'Azure7' },
-  { aws: 'AWS8', azure: 'Azure8' },
-  { aws: 'AWS9', azure: 'Azure9' },
-  { aws: 'AWS10', azure: 'Azure10' }
-  // Add more SKUs as needed
+  { aws: "t1.micro", azure: "B1s (1 Core, 1 GB RAM)" },
+  { aws: "t2.nano", azure: "B1s (1 Core, 1 GB RAM)" },
+  { aws: "t2.micro", azure: "B1s (1 Core, 1 GB RAM)" },
+  { aws: "t2.small", azure: "B1ms (1 Core, 2 GB RAM)" },
+  { aws: "t2.medium", azure: "B2s (2 Cores, 4 GB RAM)" },
+  { aws: "t2.large", azure: "B2ms (2 Cores, 8 GB RAM)" },
+  { aws: "t2.xlarge", azure: "B4ms (4 Cores, 16 GB RAM)" },
+  { aws: "t2.2xlarge", azure: "B8ms (8 Cores, 32 GB RAM)" },
+  { aws: "t3.nano", azure: "B2s (2 Cores, 4 GB RAM)" },
+  { aws: "t3.micro", azure: "B2s (2 Cores, 4 GB RAM)" },
+  { aws: "t3.small", azure: "B2s (2 Cores, 4 GB RAM)" },
+  { aws: "t3.medium", azure: "B2s (2 Cores, 4 GB RAM)" },
+  { aws: "t3.large", azure: "B2ms (2 Cores, 8 GB RAM)" },
+  { aws: "t3.xlarge", azure: "B4ms (4 Cores, 16 GB RAM)" },
+  { aws: "t3.2xlarge", azure: "B8ms (8 Cores, 32 GB RAM)" },
+  { aws: "a1.medium", azure: "D2pls_v6 (2 vCPU, 4 GB RAM)" },
+  { aws: "a1.large", azure: "D2pls_v6 (2 vCPU, 4 GB RAM)" },
+  { aws: "a1.xlarge", azure: "D4pls_v6 (4 vCPUs, 8 GB RAM)" },
+  { aws: "a1.2xlarge", azure: "D8pls_v6 (8 vCPUs, 16 GB RAM)" },
+  { aws: "a1.4xlarge", azure: "D16pls_v6 (16 vCPUs, 32 GB RAM)" },
+  { aws: "a1.metal", azure: "D16pls_v6 (16 vCPUs, 32 GB RAM)" },
+  { aws: "c1.medium", azure: "F2s v2 (2 vCPUs, 4 GB RAM)" },
+  { aws: "c1.xlarge", azure: "F8s v2 (8 vCPUs, 16 GB RAM)" },
+  { aws: "c3.large", azure: "F2s v2 (2 vCPUs, 4 GB RAM)" },
+  { aws: "c3.xlarge", azure: "F4s v2 (4 vCPUs, 8 GB RAM)" },
+  { aws: "c3.2xlarge", azure: "F8s v2 (8 vCPUs, 16 GB RAM)" },
+  { aws: "c3.4xlarge", azure: "F16s v2 (16 vCPUs, 32 GB RAM)" },
+  { aws: "c3.8xlarge", azure: "F32s v2 (32 vCPUs, 64 GB RAM)" },
+  { aws: "c4.large", azure: "F2s v2 (2 vCPUs, 4 GB RAM)" },
+  { aws: "c4.xlarge", azure: "F4s v2 (4 vCPUs, 8 GB RAM)" },
+  { aws: "c4.2xlarge", azure: "F8s v2 (8 vCPUs, 16 GB RAM)" },
+  { aws: "c4.4xlarge", azure: "F16s v2 (16 vCPUs, 32 GB RAM)" },
+  { aws: "c4.8xlarge", azure: "F48s v2 (48 vCPUs, 96 GB RAM)" },
+  { aws: "c5.large", azure: "F2s v2 (2 vCPUs, 4 GB RAM)" },
+  { aws: "c5.xlarge", azure: "F4s v2 (4 vCPUs, 8 GB RAM)" },
+  { aws: "c5.2xlarge", azure: "F8s v2 (8 vCPUs, 16 GB RAM)" },
+  { aws: "c5.4xlarge", azure: "F16s v2 (16 vCPUs, 32 GB RAM)" },
+  { aws: "c5.9xlarge", azure: "F48s v2 (48 vCPUs, 96 GB RAM)" },
+  { aws: "c5.12xlarge", azure: "F48s v2 (48 vCPUs, 96 GB RAM)" },
+  { aws: "c5.18xlarge", azure: "F72s v2 (72 vCPUs, 144 GB RAM)" },
+  { aws: "c5.24xlarge", azure: "F72s v2 (72 vCPUs, 144 GB RAM)" },
+  { aws: "c5.metal", azure: "F72s v2 (72 vCPUs, 144 GB RAM)" },
+  { aws: "c5a.large", azure: "F2s v2 (2 vCPUs, 4 GB RAM)" },
+  { aws: "c5a.xlarge", azure: "F4s v2 (4 vCPUs, 8 GB RAM)" },
+  { aws: "c5a.2xlarge", azure: "F8s v2 (8 vCPUs, 16 GB RAM)" },
+  { aws: "c5a.4xlarge", azure: "F16s v2 (16 vCPUs, 32 GB RAM)" },
+  { aws: "c5a.8xlarge", azure: "F32s v2 (32 vCPUs, 64 GB RAM)" },
+  { aws: "c5a.12xlarge", azure: "F48s v2 (48 vCPUs, 96 GB RAM)" },
+  { aws: "c5a.16xlarge", azure: "F64s v2 (64 vCPUs, 128 GB RAM)" },
+  { aws: "c5a.24xlarge", azure: "F72s v2 (72 vCPUs, 144 GB RAM)" },
+  { aws: "c5ad.large", azure: "F2s v2 (2 vCPUs, 4 GB RAM)" },
+  { aws: "c5ad.xlarge", azure: "F4s v2 (4 vCPUs, 8 GB RAM)" },
+  { aws: "c5ad.2xlarge", azure: "F8s v2 (8 vCPUs, 16 GB RAM)" },
+  { aws: "c5ad.4xlarge", azure: "F16s v2 (16 vCPUs, 32 GB RAM)" },
+  { aws: 'c6gd.8xlarge', azure: 'D32pls_v6 (32 vCPUs, 64 GB RAM)' },
+  { aws: 'c6gd.12xlarge', azure: 'D48pls_v6 (48 vCPUs, 96 GB RAM)' },
+  { aws: 'c6gd.16xlarge', azure: 'D64pls_v6 (64 vCPUs, 128 GB RAM)' },
+  { aws: 'c6gd.metal', azure: 'D64pls_v6 (64 vCPUs, 128 GB RAM)' },
+  { aws: 'c6gn.medium', azure: 'D2pls_v6 (2 vCPUs, 4 GB RAM)' },
+  { aws: 'c6gn.large', azure: 'D2pls_v6 (2 vCPUs, 4 GB RAM)' },
+  { aws: 'c6gn.xlarge', azure: 'D4pls_v6 (4 vCPUs, 8 GB RAM)' },
+  { aws: 'c6gn.2xlarge', azure: 'D8pls_v6 (8 vCPUs, 16 GB RAM)' },
+  { aws: 'c6gn.4xlarge', azure: 'D16pls_v6 (16 vCPUs, 32 GB RAM)' },
+  { aws: 'c6gn.8xlarge', azure: 'D32pls_v6 (32 vCPUs, 64 GB RAM)' },
+  { aws: 'c6gn.12xlarge', azure: 'D48pls_v6 (48 vCPUs, 96 GB RAM)' },
+  { aws: 'c6gn.16xlarge', azure: 'D64pls_v6 (64 vCPUs, 128 GB RAM)' },
+  { aws: 'c6i.large', azure: 'F2s v2 (2 vCPUs, 4 GB RAM)' },
+  { aws: 'c6i.xlarge', azure: 'F4s v2 (4 vCPUs, 8 GB RAM)' },
+  { aws: 'c6i.2xlarge', azure: 'F8s v2 (8 vCPUs, 16 GB RAM)' },
+  { aws: 'c6i.4xlarge', azure: 'F16s v2 (16 vCPUs, 32 GB RAM)' },
+  { aws: 'c6i.8xlarge', azure: 'F32s v2 (32 vCPUs, 64 GB RAM)' },
+  { aws: 'c6i.12xlarge', azure: 'F48s v2 (48 vCPUs, 96 GB RAM)' },
+  { aws: 'c6i.16xlarge', azure: 'F64s v2 (64 vCPUs, 128 GB RAM)' },
+  { aws: 'c6i.24xlarge', azure: 'F72s v2 (72 vCPUs, 144 GB RAM)' },
+  { aws: 'c6i.32xlarge', azure: 'F72s v2 (72 vCPUs, 144 GB RAM)' },
+  { aws: 'c6i.metal', azure: 'F72s v2 (72 vCPUs, 144 GB RAM)' },
+  { aws: 'c6id.large', azure: 'F2s v2 (2 vCPUs, 4 GB RAM)' },
+  { aws: 'c6id.xlarge', azure: 'F4s v2 (4 vCPUs, 8 GB RAM)' },
+  { aws: 'c6id.2xlarge', azure: 'F8s v2 (8 vCPUs, 16 GB RAM)' },
+  { aws: 'c6id.4xlarge', azure: 'F16s v2 (16 vCPUs, 32 GB RAM)' },
+  { aws: 'c6id.8xlarge', azure: 'F32s v2 (32 vCPUs, 64 GB RAM)' },
+  { aws: 'c6id.12xlarge', azure: 'F48s v2 (48 vCPUs, 96 GB RAM)' },
+  { aws: 'c6id.16xlarge', azure: 'F64s v2 (64 vCPUs, 128 GB RAM)' },
+  { aws: 'c6id.24xlarge', azure: 'F72s v2 (72 vCPUs, 144 GB RAM)' },
+  { aws: 'c6id.32xlarge', azure: 'F72s v2 (72 vCPUs, 144 GB RAM)' },
+  { aws: 'c6id.metal', azure: 'F72s v2 (72 vCPUs, 144 GB RAM)' },
+  { aws: 'c6in.large', azure: 'F2s v2 (2 vCPUs, 4 GB RAM)' },
+  { aws: 'c6in.xlarge', azure: 'F4s v2 (4 vCPUs, 8 GB RAM)' },
+  { aws: 'c6in.2xlarge', azure: 'F8s v2 (8 vCPUs, 16 GB RAM)' },
+  { aws: 'c6in.4xlarge', azure: 'F16s v2 (16 vCPUs, 32 GB RAM)' },
+  { aws: 'c6in.8xlarge', azure: 'F32s v2 (32 vCPUs, 64 GB RAM)' },
+  { aws: 'c6in.12xlarge', azure: 'F48s v2 (48 vCPUs, 96 GB RAM)' },
+  { aws: 'c6in.16xlarge', azure: 'F64s v2 (64 vCPUs, 128 GB RAM)' },
+  { aws: 'c6in.24xlarge', azure: 'F72s v2 (72 vCPUs, 144 GB RAM)' },
+  { aws: 'c6in.32xlarge', azure: 'F72s v2 (72 vCPUs, 144 GB RAM)' },
+  { aws: 'c6in.metal', azure: 'F72s v2 (72 vCPUs, 144 GB RAM)' },
+  { aws: 'c7g.medium', azure: 'D2pls_v6 (2 vCPUs, 4 GB RAM)' },
+  { aws: 'c7g.large', azure: 'D2pls_v6 (2 vCPUs, 4 GB RAM)' },
+  { aws: 'c7g.xlarge', azure: 'D4pls_v6 (4 vCPUs, 8 GB RAM)' },
+  { aws: 'c7g.2xlarge', azure: 'D8pls_v6 (8 vCPUs, 16 GB RAM)' },
+  { aws: 'c7g.4xlarge', azure: 'D16pls_v6 (16 vCPUs, 32 GB RAM)' },
+  { aws: 'c7g.8xlarge', azure: 'D32pls_v6 (32 vCPUs, 64 GB RAM)' },
+  { aws: 'c7g.12xlarge', azure: 'D48pls_v6 (48 vCPUs, 96 GB RAM)' },
+  { aws: 'c7g.16xlarge', azure: 'D64pls_v6 (64 vCPUs, 128 GB RAM)' },
+  { aws: 'c7g.metal', azure: 'D64pls_v6 (64 vCPUs, 128 GB RAM)' },
+  { aws: 'c7gd.medium', azure: 'D2pls_v6 (2 vCPUs, 4 GB RAM)' },
+  { aws: 'c7gd.large', azure: 'D2pls_v6 (2 vCPUs, 4 GB RAM)' },
+  { aws: 'c7gd.xlarge', azure: 'D4pls_v6 (4 vCPUs, 8 GB RAM)' },
+  { aws: 'c7gd.2xlarge', azure: 'D8pls_v6 (8 vCPUs, 16 GB RAM)' },
+  { aws: 'c7gd.4xlarge', azure: 'D16pls_v6 (16 vCPUs, 32 GB RAM)' },
+  { aws: 'c7gd.8xlarge', azure: 'D32pls_v6 (32 vCPUs, 64 GB RAM)' },
+  { aws: 'c7gd.12xlarge', azure: 'D48pls_v6 (48 vCPUs, 96 GB RAM)' },
+  { aws: 'c7gd.16xlarge', azure: 'D64pls_v6 (64 vCPUs, 128 GB RAM)' },
+  { aws: 'c7gn.medium', azure: 'D2pls_v6 (2 vCPUs, 4 GB RAM)' },
+  { aws: 'c7gn.large', azure: 'D2pls_v6 (2 vCPUs, 4 GB RAM)' },
+  { aws: 'c7gn.xlarge', azure: 'D4pls_v6 (4 vCPUs, 8 GB RAM)' },
+  { aws: 'c7gn.2xlarge', azure: 'D8pls_v6 (8 vCPUs, 16 GB RAM)' },
+  { aws: 'c7gn.4xlarge', azure: 'D16pls_v6 (16 vCPUs, 32 GB RAM)' },
+  { aws: 'c7gn.8xlarge', azure: 'D32pls_v6 (32 vCPUs, 64 GB RAM)' },
+  { aws: 'c7gn.12xlarge', azure: 'D48pls_v6 (48 vCPUs, 96 GB RAM)' },
+  { aws: 'c7gn.16xlarge', azure: 'D64pls_v6 (64 vCPUs, 128 GB RAM)' },
+  { aws: 'd2.xlarge', azure: 'L8s v3 (8 vCPUs, 64 GB RAM)' },
+  { aws: 'd2.2xlarge', azure: 'L8s v3 (8 vCPUs, 64 GB RAM)' },
+  { aws: 'd2.4xlarge', azure: 'L16s_v3 (16 vCPUs, 128 GB RAM)' },
+  { aws: 'd2.8xlarge', azure: 'L48s_v3 (48 vCPUs, 384 GB RAM)' },
+  { aws: 'd3.xlarge', azure: 'L8s v3 (8 vCPUs, 64 GB RAM)' },
+  { aws: 'd3.2xlarge', azure: 'L8s v3 (8 vCPUs, 64 GB RAM)' },
+  { aws: 'd3.4xlarge', azure: 'L16s_v3 (16 vCPUs, 128 GB RAM)' },
+  { aws: 'd3.8xlarge', azure: 'L32s v3 (32 vCPUs, 256 GB RAM)' },
+  { aws: 'd3en.xlarge', azure: 'L8s v3 (8 vCPUs, 64 GB RAM)' },
+  { aws: 'd3en.2xlarge', azure: 'L8s v3 (8 vCPUs, 64 GB RAM)' },
+  { aws: 'd3en.4xlarge', azure: 'L16s_v3 (16 vCPUs, 128 GB RAM)' },
+  { aws: 'd3en.6xlarge', azure: 'L32s v3 (32 vCPUs, 256 GB RAM)' },
+  { aws: 'd3en.8xlarge', azure: 'L32s v3 (32 vCPUs, 256 GB RAM)' },
+  { aws: 'd3en.12xlarge', azure: 'L48s_v3 (48 vCPUs, 384 GB RAM)' },
+  { aws: 'dl1.24xlarge', azure: 'NC96ads A100 v4 (96 Cores, 880 GB RAM)' },
+  { aws: 'f1.2xlarge', azure: 'NV12s v3 (12 vCPUs, 112 GB RAM)' },
+  { aws: 'f1.4xlarge', azure: 'H16m (16 Cores, 224 GB RAM)' },
+  { aws: 'f1.16xlarge', azure: 'HB120-64rs_v2 (64 Cores, 456 GB RAM)' },
+  { aws: 'g2.2xlarge', azure: 'NV8as v4 (8 vCPUs, 28 GB RAM)' },
+  { aws: 'g2.8xlarge', azure: 'NV32as v4 (32 vCPUs, 112 GB RAM)' },
+  { aws: 'g3.4xlarge', azure: 'H16m (16 Cores, 224 GB RAM)' },
+  { aws: 'g3.8xlarge', azure: 'HC44-32rs (32 Cores, 352 GB RAM)' },
+  { aws: 'g3.16xlarge', azure: 'HB120-64rs v3 (64 Cores, 448 GB RAM)' },
+  { aws: 'g3s.xlarge', azure: 'NC4as T4 v3 (4 vCPUs, 28 GB RAM)' },
+  { aws: 'g4ad.xlarge', azure: 'NV4as v4 (4 vCPUs, 14 GB RAM)' },
+  { aws: 'g4ad.2xlarge', azure: 'NV8ads v710 v5 (8 vCPUs, 32 GB RAM)' },
+  { aws: 'g4ad.4xlarge', azure: 'NV18ads_A10_v5 (18 vCPUs, 220 GB RAM)' },
+  { aws: 'g4ad.8xlarge', azure: 'NV32as v4 (32 vCPUs, 112 GB RAM)' },
+  { aws: 'g4ad.16xlarge', azure: 'NC64as T4 v3 (64 vCPUs, 440 GB RAM)' },
+  { aws: 'g4dn.xlarge', azure: 'NC4as T4 v3 (4 vCPUs, 28 GB RAM)' },
+  { aws: 'g4dn.2xlarge', azure: 'NC8as T4 v3 (8 vCPUs, 56 GB RAM)' },
+  { aws: 'g4dn.4xlarge', azure: 'NC16as T4 v3 (16 vCPUs, 110 GB RAM)' },
+  { aws: 'g4dn.8xlarge', azure: 'NC64as T4 v3 (64 vCPUs, 440 GB RAM)' }
 ];
 
 const tbody = document.querySelector('#skuTable tbody');
 
-// Function to add a new SKU row with validation
+// Function to add a new row
 function addSkuRow() {
   const row = document.createElement('tr');
 
-  // AWS SKU cell with select
+  // AWS SKU cell
   const awsCell = document.createElement('td');
+  awsCell.className = 'aws-cell'; // Add class for coloring
   const awsSelect = document.createElement('select');
   awsSelect.innerHTML = `<option value="">Select AWS SKU</option>`;
   skuMap.forEach(item => {
@@ -79,7 +223,6 @@ function addSkuRow() {
   awsSelect.onchange = () => {
     const selectedAws = awsSelect.value;
     const match = skuMap.find(s => s.aws === selectedAws);
-    const azureInput = row.children[1].children[0];
     if (match) {
       azureInput.value = match.azure;
     } else {
@@ -89,8 +232,9 @@ function addSkuRow() {
   awsCell.appendChild(awsSelect);
   row.appendChild(awsCell);
 
-  // Azure SKU input (read-only)
+  // Azure SKU cell
   const azureCell = document.createElement('td');
+  azureCell.className = 'azure-cell'; // Add class for coloring
   const azureInput = document.createElement('input');
   azureInput.type = 'text';
   azureInput.readOnly = true;
@@ -109,63 +253,102 @@ function addSkuRow() {
   tbody.appendChild(row);
 }
 
-// Function to update search suggestions
-function updateSearchSuggestions() {
-  const input = document.getElementById('awsSearchInput');
-  const suggestionsDiv = document.getElementById('searchSuggestions');
-  const query = input.value.trim().toLowerCase();
-  suggestionsDiv.innerHTML = '';
+// Search suggestion logic
+const searchInput = document.getElementById('awsSearchInput');
+const searchSuggestionsDiv = document.getElementById('searchSuggestions');
 
-  if (query === '') {
-    suggestionsDiv.style.display = 'none';
+function updateSearchSuggestions() {
+  const val = searchInput.value.trim().toLowerCase();
+  searchSuggestionsDiv.innerHTML = '';
+
+  if (!val) {
     return;
   }
 
-  const matches = skuMap.filter(item => item.aws.toLowerCase().includes(query));
+  const matches = skuMap.filter(item => item.aws.toLowerCase().includes(val));
   matches.forEach(item => {
     const div = document.createElement('div');
     div.textContent = item.aws;
     div.onclick = () => {
-      showMatchingOption(item.aws);
-      suggestionsDiv.innerHTML = '';
+      searchInput.value = item.aws;
+      showMatchingOption(item);
+      searchSuggestionsDiv.innerHTML = '';
     };
-    suggestionsDiv.appendChild(div);
+    searchSuggestionsDiv.appendChild(div);
   });
-  suggestionsDiv.style.display = matches.length > 0 ? 'block' : 'none';
 }
 
-// Function to set selected SKU from suggestion
-function showMatchingOption(selectedAws) {
-  document.getElementById('awsSearchInput').value = selectedAws;
-  // Optional: implement logic to add the SKU to the table if needed
+function showMatchingOption(item) {
+  // Add a new row with selected SKU
+  const row = document.createElement('tr');
+
+  // AWS Select
+  const awsCell = document.createElement('td');
+  awsCell.className = 'aws-cell';
+  const awsSelect = document.createElement('select');
+  skuMap.forEach(s => {
+    const option = document.createElement('option');
+    option.value = s.aws;
+    option.textContent = s.aws;
+    if (s.aws === item.aws) option.selected = true;
+    awsSelect.appendChild(option);
+  });
+  awsSelect.onchange = () => {
+    const selectedAws = awsSelect.value;
+    const match = skuMap.find(s => s.aws === selectedAws);
+    if (match) {
+      azureInput.value = match.azure;
+    } else {
+      azureInput.value = '';
+    }
+  };
+  awsCell.appendChild(awsSelect);
+  row.appendChild(awsCell);
+
+  // Azure SKU
+  const azureCell = document.createElement('td');
+  azureCell.className = 'azure-cell';
+  const azureInput = document.createElement('input');
+  azureInput.type = 'text';
+  azureInput.readOnly = true;
+  azureInput.value = item.azure;
+  azureCell.appendChild(azureInput);
+  row.appendChild(azureCell);
+
+  // Remove button
+  const actionCell = document.createElement('td');
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.textContent = 'Remove';
+  removeBtn.onclick = () => row.remove();
+  actionCell.appendChild(removeBtn);
+  row.appendChild(actionCell);
+
+  tbody.appendChild(row);
 }
 
-// Function to download CSV
+// Download all data as CSV
 function downloadCSV() {
-  const rows = [];
-  const tbody = document.querySelector('#skuTable tbody');
-  tbody.querySelectorAll('tr').forEach(tr => {
-    const awsSelect = tr.children[0].children[0];
-    const aws = awsSelect.value || '';
-    const azure = tr.children[1].children[0].value || '';
-    rows.push({ aws, azure });
+  const headers = ['AWS SKU', 'Azure SKU'];
+  const rows = Array.from(tbody.children).map(row => {
+    const aws = row.children[0].children[0].value;
+    const azure = row.children[1].children[0].value;
+    return [aws, azure];
   });
-  let csvContent = 'AWS SKU,Azure SKU\n';
-  rows.forEach(row => {
-    csvContent += `"${row.aws}","${row.azure}"\n`;
-  });
+
+  const csvContent = [headers, ...rows]
+    .map(e => e.join(','))
+    .join('\n');
+
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'sku_mapping.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'skus.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
-
-// Initialize with one row
-addSkuRow();
-
 </script>
 
 </body>
